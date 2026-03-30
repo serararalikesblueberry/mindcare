@@ -5,7 +5,11 @@ const connectDB = require('./db');
 
 const app = express();
 
-app.use(cors());
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PATCH', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));//app.use(cors());
 app.use(express.json());
 
 app.use('/api/auth',       require('./auth'));
