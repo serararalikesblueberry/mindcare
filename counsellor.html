@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard · MindCare</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  .urgent-banner {
+    background: var(--risk-high-bg);
+    border: 1.5px solid var(--peach);
+    border-radius: 14px;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 28px;
+    animation: fadeUp 0.3s ease both;
+  }
+  .urgent-banner .u-icon { font-size: 1.5rem; }
+  .urgent-banner .u-text strong { display: block; font-size: 0.95rem; color: var(--terracotta); }
+  .urgent-banner .u-text span   { font-size: 0.82rem; color: var(--muted); }
+  .urgent-banner a { margin-left: auto; flex-shrink: 0; }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 18px;
+  }
+  .section-header h2 { font-size: 1.25rem; }
+
+  .recent-list { display: flex; flex-direction: column; gap: 12px; }
+
+  .session-row {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    transition: box-shadow 0.2s;
+    cursor: pointer;
+    text-decoration: none;
+    color: inherit;
+  }
+  .session-row:hover { box-shadow: var(--shadow-lg); }
+
+  .session-row .sr-score {
+    font-family: 'Fraunces', serif;
+    font-size: 1.5rem;
+    min-width: 48px;
+    text-align: center;
+  }
+  .session-row .sr-meta { flex: 1; }
+  .session-row .sr-meta .sr-id  { font-size: 0.8rem; color: var(--muted); margin-bottom: 2px; }
+  .session-row .sr-meta .sr-info { font-size: 0.88rem; font-weight: 500; }
+  .session-row .sr-time { font-size: 0.78rem; color: var(--muted); text-align: right; }
+
+  .status-chip {
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 0.73rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .s-open        { background: #DBEAFE; color: #1E40AF; }
+  .s-in_progress { background: var(--risk-mod-bg); color: var(--risk-mod); }
+  .s-closed      { background: var(--risk-low-bg); color: var(--risk-low); }
+
+  .empty-state {
+    text-align: center;
+    padding: 48px 24px;
+    color: var(--muted);
+  }
+  .empty-state .e-icon { font-size: 2.5rem; margin-bottom: 10px; }
+</style>
+</head>
+<body>
+<div id="toast"></div>
+
+<div class="app-layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="s-logo">🌿 MindCare</div>
+    <a href="counsellor.html" class="active">📊 Dashboard</a>
+    <a href="students.html">👥 Students</a>
+    <div class="s-divider"></div>
+    <div class="s-footer">
+      <div style="padding:8px 12px;font-size:0.8rem;color:rgba(251,247,240,0.5);margin-bottom:6px;" id="sb-name"></div>
+      <a href="#" onclick="mcLogout()">🚪 Logout</a>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main-content">
+    <div style="margin-bottom:32px;animation:fadeUp 0.3s ease both;">
+      <h1 style="margin-bottom:4px;">Good to see you 👋</h1>
+      <p>Here's how students are doing today.</p>
+    </div>
+
+    <!-- Urgent banner (shown if pending24h > 0) -->
+    <div class="urgent-banner" id="urgent-banner" style="display:none">
+      <div class="u-icon">🔴</div>
+      <div class="u-text">
+        <strong id="urgent-text">High-risk students awaiting contact</strong>
+        <span>These students submitted over 24 hours ago and haven't been claimed yet</span>
+      </div>
+      <a href="students.html?risk=high&status=open" class="btn btn-peach" style="padding:9px 18px;font-size:0.85rem;">View Now</a>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid" id="stats-grid">
+      <div class="stat-card"><div class="s-icon">📋</div><div class="s-num" id="st-total">—</div><div class="s-label">Total Submissions</div></div>
+      <div class="stat-card"><div class="s-icon">🔴</div><div class="s-num" id="st-high">—</div><div class="s-label">High Risk</div></div>
+      <div class="stat-card"><div class="s-icon">🟡</div><div class="s-num" id="st-mod">—</div><div class="s-label">Moderate Risk</div></div>
+      <div class="stat-card"><div class="s-icon">🟢</div><div class="s-num" id="st-low">—</div><div class="s-label">Low Risk</div></div>
+      <div class="stat-card"><div class="s-icon">🤝</div><div class="s-num" id="st-mine">—</div><div class="s-label">My Active Cases</div></div>
+    </div>
+
+    <!-- Recent sessions -->
+    <div>
+      <div class="section-header">
+        <h2>Recent Submissions</h2>
+        <a href="students.html" class="btn btn-outline" style="padding:8px 18px;font-size:0.85rem;">View All</a>
+      </div>
+      <div id="recent-list" class="recent-list">
+        <div class="empty-state"><div class="e-icon">⏳</div><p>Loading…</p></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="api.js"></script>
+<script>
+requireAuth('counsellor');
+document.getElementById('sb-name').textContent = '👤 ' + (localStorage.getItem('mc_username') || '');
+
+async function loadDashboard() {
+  const [dashData, sessData] = await Promise.all([
+    mcGetDashboard(),
+    mcGetSessions({ limit: 8 }),
+  ]);
+
+  if (dashData.stats) {
+    const s = dashData.stats;
+    document.getElementById('st-total').textContent = s.total;
+    document.getElementById('st-high').textContent  = s.high;
+    document.getElementById('st-mod').textContent   = s.moderate;
+    document.getElementById('st-low').textContent   = s.low;
+    document.getElementById('st-mine').textContent  = s.mine;
+
+    if (s.pending24h > 0) {
+      document.getElementById('urgent-banner').style.display = 'flex';
+      document.getElementById('urgent-text').textContent =
+        `${s.pending24h} high-risk student${s.pending24h > 1 ? 's' : ''} awaiting contact (24h+)`;
+    }
+  }
+
+  const list = document.getElementById('recent-list');
+  const sessions = sessData.sessions || [];
+
+  if (!sessions.length) {
+    list.innerHTML = '<div class="empty-state"><div class="e-icon">🌱</div><p>No submissions yet.</p></div>';
+    return;
+  }
+
+  list.innerHTML = sessions.map(s => `
+    <a class="session-row" href="student-detail.html?id=${s._id}">
+      <div class="sr-score">${s.normalized_score}</div>
+      <div class="sr-meta">
+        <div class="sr-id">Session #${s._id.slice(-6).toUpperCase()}</div>
+        <div class="sr-info">
+          <span class="risk-badge risk-${s.risk_level}">${s.risk_level}</span>
+          ${s.partial_info?.year ? ' · ' + s.partial_info.year : ''}
+          ${s.partial_info?.dept ? ' · ' + s.partial_info.dept : ''}
+        </div>
+      </div>
+      <div class="sr-time">
+        <div class="status-chip s-${s.status}">${s.status.replace('_',' ')}</div>
+        <div style="margin-top:5px">${timeAgo(s.createdAt)}</div>
+      </div>
+    </a>
+  `).join('');
+}
+
+function timeAgo(iso) {
+  const diff = Date.now() - new Date(iso).getTime();
+  const h = Math.floor(diff / 36e5);
+  if (h < 1)  return 'Just now';
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h/24)}d ago`;
+}
+
+loadDashboard();
+</script>
+</body>
+</html>

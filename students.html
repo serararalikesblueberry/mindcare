@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Students · MindCare</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  .filter-bar {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+    align-items: center;
+  }
+
+  .filter-btn {
+    padding: 8px 18px;
+    border-radius: 999px;
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.83rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.18s;
+    color: var(--muted);
+  }
+  .filter-btn:hover,
+  .filter-btn.active { border-color: var(--warm-brown); background: var(--warm-brown); color: var(--cream); }
+  .filter-btn.f-high.active     { background: var(--risk-high); border-color: var(--risk-high); }
+  .filter-btn.f-moderate.active { background: var(--risk-mod);  border-color: var(--risk-mod); }
+  .filter-btn.f-low.active      { background: var(--risk-low);  border-color: var(--risk-low); }
+
+  .table-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+
+  .empty-state { text-align:center; padding:56px 24px; color:var(--muted); }
+  .empty-state .e-icon { font-size:2.5rem; margin-bottom:10px; }
+
+  .pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    margin-top: 24px;
+  }
+  .page-btn {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    color: var(--muted);
+    transition: all 0.15s;
+  }
+  .page-btn:hover, .page-btn.active {
+    background: var(--warm-brown);
+    color: var(--cream);
+    border-color: var(--warm-brown);
+  }
+  .page-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+</style>
+</head>
+<body>
+<div id="toast"></div>
+
+<div class="app-layout">
+  <aside class="sidebar">
+    <div class="s-logo">🌿 MindCare</div>
+    <a href="counsellor.html">📊 Dashboard</a>
+    <a href="students.html" class="active">👥 Students</a>
+    <div class="s-divider"></div>
+    <div class="s-footer">
+      <div style="padding:8px 12px;font-size:0.8rem;color:rgba(251,247,240,0.5);margin-bottom:6px;" id="sb-name"></div>
+      <a href="#" onclick="mcLogout()">🚪 Logout</a>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div style="margin-bottom:28px;animation:fadeUp 0.3s ease both;">
+      <h1 style="margin-bottom:4px;">Student Submissions</h1>
+      <p>All students who gave consent to be contacted.</p>
+    </div>
+
+    <!-- Filters -->
+    <div class="filter-bar">
+      <button class="filter-btn active" data-risk="" data-status="" onclick="applyFilter(this)">All</button>
+      <button class="filter-btn f-high"     data-risk="high"     data-status="" onclick="applyFilter(this)">🔴 High Risk</button>
+      <button class="filter-btn f-moderate" data-risk="moderate" data-status="" onclick="applyFilter(this)">🟡 Moderate</button>
+      <button class="filter-btn f-low"      data-risk="low"      data-status="" onclick="applyFilter(this)">🟢 Low Risk</button>
+      <div style="margin-left:auto;display:flex;gap:8px;">
+        <button class="filter-btn" data-risk="" data-status="open"        onclick="applyFilter(this)">Open</button>
+        <button class="filter-btn" data-risk="" data-status="in_progress" onclick="applyFilter(this)">In Progress</button>
+        <button class="filter-btn" data-risk="" data-status="closed"      onclick="applyFilter(this)">Closed</button>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-wrap">
+      <table class="mc-table" id="session-table">
+        <thead>
+          <tr>
+            <th>Session ID</th>
+            <th>Risk Level</th>
+            <th>Score</th>
+            <th>Year</th>
+            <th>Dept</th>
+            <th>Block</th>
+            <th>Status</th>
+            <th>Submitted</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="table-body">
+          <tr><td colspan="9"><div class="empty-state"><div class="e-icon">⏳</div><p>Loading…</p></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pagination" id="pagination"></div>
+  </main>
+</div>
+
+<script src="api.js"></script>
+<script>
+requireAuth('counsellor');
+document.getElementById('sb-name').textContent = '👤 ' + (localStorage.getItem('mc_username') || '');
+
+let currentFilters = { risk: '', status: '' };
+let currentPage = 1;
+const LIMIT = 15;
+
+// Read URL params on load
+const urlP = new URLSearchParams(window.location.search);
+if (urlP.get('risk'))   currentFilters.risk   = urlP.get('risk');
+if (urlP.get('status')) currentFilters.status = urlP.get('status');
+
+// Highlight matching filter button
+document.querySelectorAll('.filter-btn').forEach(b => {
+  b.classList.toggle('active',
+    b.dataset.risk === currentFilters.risk &&
+    b.dataset.status === currentFilters.status
+  );
+});
+
+async function loadSessions() {
+  const tbody = document.getElementById('table-body');
+  tbody.innerHTML = '<tr><td colspan="9"><div class="empty-state"><div class="e-icon">⏳</div><p>Loading…</p></div></td></tr>';
+
+  const params = { page: currentPage, limit: LIMIT };
+  if (currentFilters.risk)   params.risk   = currentFilters.risk;
+  if (currentFilters.status) params.status = currentFilters.status;
+
+  const data = await mcGetSessions(params);
+  const sessions = data.sessions || [];
+
+  if (!sessions.length) {
+    tbody.innerHTML = '<tr><td colspan="9"><div class="empty-state"><div class="e-icon">🌱</div><p>No sessions match this filter.</p></div></td></tr>';
+    renderPagination(0);
+    return;
+  }
+
+  tbody.innerHTML = sessions.map(s => `
+    <tr>
+      <td style="font-family:monospace;font-size:0.82rem;color:var(--muted)">#${s._id.slice(-6).toUpperCase()}</td>
+      <td><span class="risk-badge risk-${s.risk_level}">${s.risk_level}</span></td>
+      <td><strong>${s.normalized_score}</strong><span style="color:var(--muted);font-size:0.8rem">/100</span></td>
+      <td>${s.partial_info?.year  || '—'}</td>
+      <td>${s.partial_info?.dept  || '—'}</td>
+      <td>${s.partial_info?.block || '—'}</td>
+      <td><span class="status-chip s-${s.status}">${s.status.replace('_',' ')}</span></td>
+      <td style="font-size:0.82rem;color:var(--muted)">${timeAgo(s.createdAt)}</td>
+      <td><a href="student-detail.html?id=${s._id}" class="btn btn-outline" style="padding:6px 14px;font-size:0.8rem;">View →</a></td>
+    </tr>
+  `).join('');
+
+  renderPagination(data.total || sessions.length);
+}
+
+function renderPagination(total) {
+  const totalPages = Math.ceil(total / LIMIT);
+  const pag = document.getElementById('pagination');
+  if (totalPages <= 1) { pag.innerHTML = ''; return; }
+
+  let html = `<button class="page-btn" onclick="goPage(${currentPage-1})" ${currentPage===1?'disabled':''}>‹</button>`;
+  for (let i = 1; i <= totalPages; i++) {
+    html += `<button class="page-btn ${i===currentPage?'active':''}" onclick="goPage(${i})">${i}</button>`;
+  }
+  html += `<button class="page-btn" onclick="goPage(${currentPage+1})" ${currentPage===totalPages?'disabled':''}>›</button>`;
+  pag.innerHTML = html;
+}
+
+function goPage(p) {
+  currentPage = p;
+  loadSessions();
+}
+
+function applyFilter(btn) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentFilters.risk   = btn.dataset.risk;
+  currentFilters.status = btn.dataset.status;
+  currentPage = 1;
+  loadSessions();
+}
+
+function timeAgo(iso) {
+  const h = Math.floor((Date.now() - new Date(iso)) / 36e5);
+  if (h < 1)  return 'Just now';
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h/24)}d ago`;
+}
+
+// status-chip style (inline so it works in table)
+const styleEl = document.createElement('style');
+styleEl.textContent = `.status-chip{padding:4px 10px;border-radius:999px;font-size:.73rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em}.s-open{background:#DBEAFE;color:#1E40AF}.s-in_progress{background:var(--risk-mod-bg);color:var(--risk-mod)}.s-closed{background:var(--risk-low-bg);color:var(--risk-low)}`;
+document.head.appendChild(styleEl);
+
+loadSessions();
+</script>
+</body>
+</html>

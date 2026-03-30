@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Session Detail · MindCare</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  .detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    gap: 28px;
+    align-items: start;
+  }
+
+  /* ── Left column ── */
+  .answers-list { display: flex; flex-direction: column; gap: 10px; }
+
+  .ans-row {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .ans-score {
+    width: 36px; height: 36px;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 0.95rem;
+    flex-shrink: 0;
+  }
+  .ans-score.s-low      { background: var(--risk-low-bg);  color: var(--risk-low); }
+  .ans-score.s-moderate { background: var(--risk-mod-bg);  color: var(--risk-mod); }
+  .ans-score.s-high     { background: var(--risk-high-bg); color: var(--risk-high); }
+
+  .ans-row .a-q { font-size: 0.88rem; font-weight: 500; flex: 1; }
+  .ans-row .a-cat { font-size: 0.73rem; color: var(--muted); font-weight: 600; text-transform: uppercase; }
+
+  /* ── Right column ── */
+  .side-stack { display: flex; flex-direction: column; gap: 20px; }
+
+  .info-block { margin-bottom: 0; }
+  .info-block h3 { font-size: 1rem; margin-bottom: 14px; }
+
+  .info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.88rem;
+  }
+  .info-row:last-child { border-bottom: none; }
+  .info-row .ir-label { color: var(--muted); font-weight: 500; }
+  .info-row .ir-val   { font-weight: 600; }
+
+  /* Messages */
+  .msg-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; max-height: 320px; overflow-y: auto; }
+
+  .msg-bubble {
+    border-radius: 12px;
+    padding: 12px 14px;
+    font-size: 0.87rem;
+  }
+  .msg-bubble.followup { background: #EFF6FF; border-left: 3px solid #3B82F6; }
+  .msg-bubble.advice   { background: var(--sage-light); border-left: 3px solid var(--sage); }
+  .msg-bubble .mb-type { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 4px; }
+  .msg-bubble .mb-content { line-height: 1.5; }
+  .msg-bubble .mb-reply {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(0,0,0,0.07);
+    font-size: 0.82rem;
+    color: var(--muted);
+  }
+
+  .msg-composer select,
+  .msg-composer textarea {
+    width: 100%;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.88rem;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    background: var(--cream);
+    color: var(--warm-brown);
+    resize: vertical;
+    outline: none;
+    margin-bottom: 8px;
+  }
+  .msg-composer textarea:focus,
+  .msg-composer select:focus { border-color: var(--peach); }
+
+  .score-big {
+    font-family: 'Fraunces', serif;
+    font-size: 3.5rem;
+    line-height: 1;
+    color: var(--warm-brown);
+    margin-bottom: 4px;
+  }
+
+  @media (max-width: 900px) {
+    .detail-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div id="toast"></div>
+
+<div class="app-layout">
+  <aside class="sidebar">
+    <div class="s-logo">🌿 MindCare</div>
+    <a href="counsellor.html">📊 Dashboard</a>
+    <a href="students.html" class="active">👥 Students</a>
+    <div class="s-divider"></div>
+    <div class="s-footer">
+      <div style="padding:8px 12px;font-size:0.8rem;color:rgba(251,247,240,0.5);margin-bottom:6px;" id="sb-name"></div>
+      <a href="#" onclick="mcLogout()">🚪 Logout</a>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div style="margin-bottom:24px;">
+      <a href="students.html" class="btn btn-ghost" style="padding:8px 0;margin-bottom:12px;">← Back to Students</a>
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+        <h1 id="page-title" style="margin:0;">Session Detail</h1>
+        <span class="risk-badge" id="risk-badge-top"></span>
+        <span class="status-chip" id="status-chip-top" style="padding:5px 12px;border-radius:999px;font-size:.8rem;font-weight:700;text-transform:uppercase"></span>
+        <div style="margin-left:auto;display:flex;gap:10px;" id="action-btns"></div>
+      </div>
+    </div>
+
+    <div class="detail-grid" id="detail-grid" style="display:none">
+
+      <!-- Left: Answers -->
+      <div>
+        <div style="margin-bottom:18px;">
+          <h2 style="font-size:1.1rem;margin-bottom:4px;">Questionnaire Answers</h2>
+          <p style="font-size:0.85rem;">Responses on a scale of 1 (Not at all) to 6 (Strongly yes)</p>
+        </div>
+        <div class="answers-list" id="answers-list"></div>
+      </div>
+
+      <!-- Right: Info + actions -->
+      <div class="side-stack">
+
+        <!-- Score summary -->
+        <div class="card">
+          <div class="score-big" id="side-score">—</div>
+          <div style="font-size:0.8rem;color:var(--muted);margin-bottom:16px;">out of 100</div>
+          <div class="progress-track"><div class="progress-fill" id="side-bar" style="width:0%"></div></div>
+          <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:0.72rem;color:var(--muted);">
+            <span>🟢 Low</span><span>🟡 Moderate</span><span>🔴 High</span>
+          </div>
+        </div>
+
+        <!-- Student info (partial) -->
+        <div class="card info-block">
+          <h3>Shared Context</h3>
+          <div id="partial-info-block">
+            <div class="info-row"><span class="ir-label">Year</span><span class="ir-val" id="pi-year">—</span></div>
+            <div class="info-row"><span class="ir-label">Department</span><span class="ir-val" id="pi-dept">—</span></div>
+            <div class="info-row"><span class="ir-label">Block/Hostel</span><span class="ir-val" id="pi-block">—</span></div>
+          </div>
+        </div>
+
+        <!-- Session meta -->
+        <div class="card info-block">
+          <h3>Session Info</h3>
+          <div class="info-row"><span class="ir-label">Session ID</span><span class="ir-val" id="meta-id" style="font-family:monospace;font-size:0.82rem"></span></div>
+          <div class="info-row"><span class="ir-label">Submitted</span><span class="ir-val" id="meta-date"></span></div>
+          <div class="info-row"><span class="ir-label">Claimed by</span><span class="ir-val" id="meta-claimed"></span></div>
+        </div>
+
+        <!-- Messages -->
+        <div class="card" id="messages-card">
+          <h3 style="margin-bottom:12px;">Messages</h3>
+          <div class="msg-list" id="msg-list"></div>
+
+          <div class="msg-composer" id="msg-composer" style="display:none">
+            <select id="msg-type">
+              <option value="followup">Follow-up Question</option>
+              <option value="advice">Send Advice / Guidance</option>
+            </select>
+            <textarea id="msg-content" rows="3" placeholder="Type your message…"></textarea>
+            <button class="btn btn-primary btn-full" onclick="sendMsg()">Send</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div id="loading-state" style="text-align:center;padding:60px;color:var(--muted);">Loading session…</div>
+    <div id="error-state" style="text-align:center;padding:60px;color:var(--muted);display:none">Session not found.</div>
+
+  </main>
+</div>
+
+<script src="api.js"></script>
+<script>
+requireAuth('counsellor');
+document.getElementById('sb-name').textContent = '👤 ' + (localStorage.getItem('mc_username') || '');
+
+const sessionId = new URLSearchParams(window.location.search).get('id');
+let sessionData = null;
+
+const QUESTIONS = [
+  { text: "Do you wake up feeling rested?",                               cat: "Sleep & Energy",       weight: 2, reverse: true  },
+  { text: "Do you feel motivated to start your day?",                     cat: "Mood",                 weight: 1, reverse: true  },
+  { text: "Do you feel pressure to perform well academically?",           cat: "Academic Stress",      weight: 2, reverse: false },
+  { text: "Do you feel lonely even when surrounded by others?",           cat: "Social Connection",    weight: 3, reverse: false },
+  { text: "Do you participate in social or hostel activities?",           cat: "Social Connection",    weight: 1, reverse: true  },
+  { text: "Do you experience sudden changes in appetite?",                cat: "Physical Signs",       weight: 2, reverse: false },
+  { text: "Do deadlines make you feel anxious or panicked?",              cat: "Academic Stress",      weight: 2, reverse: false },
+  { text: "Do you feel mentally exhausted after studying?",               cat: "Burnout",              weight: 3, reverse: false },
+  { text: "Does social media make you feel insecure or stressed?",        cat: "Digital Wellbeing",    weight: 2, reverse: false },
+  { text: "Do you use your phone to escape from problems?",               cat: "Digital Wellbeing",    weight: 2, reverse: false },
+  { text: "Do you talk to someone when you feel stressed?",               cat: "Coping",               weight: 1, reverse: true  },
+  { text: "Do you feel emotionally disconnected from home?",              cat: "Belonging",            weight: 3, reverse: false },
+  { text: "Would you be willing to seek professional help if needed?",    cat: "Help-seeking",         weight: 1, reverse: true  },
+  { text: "Do you get irritated easily over small issues?",               cat: "Emotional Regulation", weight: 3, reverse: false },
+  { text: "Do you feel a lack of interest in activities you once enjoyed?",cat: "Burnout",             weight: 3, reverse: false },
+  { text: "Do you feel confident in handling your problems?",             cat: "Coping",               weight: 1, reverse: true  },
+];
+
+async function load() {
+  if (!sessionId) { showError(); return; }
+
+  const data = await mcGetCounsellorSession(sessionId);
+  if (data.error || !data.session) { showError(); return; }
+
+  sessionData = data.session;
+  render(sessionData);
+}
+
+function render(s) {
+  document.getElementById('loading-state').style.display = 'none';
+  document.getElementById('detail-grid').style.display = 'grid';
+
+  // Title / badges
+  document.getElementById('page-title').textContent = `Session #${s._id.slice(-6).toUpperCase()}`;
+
+  const rb = document.getElementById('risk-badge-top');
+  rb.className = `risk-badge risk-${s.risk_level}`;
+  rb.textContent = s.risk_level.charAt(0).toUpperCase() + s.risk_level.slice(1) + ' Risk';
+
+  const sc = document.getElementById('status-chip-top');
+  sc.className = `status-chip s-${s.status}`;
+  sc.textContent = s.status.replace('_', ' ');
+
+  // Action buttons
+  const ab = document.getElementById('action-btns');
+  if (s.status === 'open') {
+    ab.innerHTML = `<button class="btn btn-peach" onclick="claim()">Claim Session</button>`;
+  } else if (s.status === 'in_progress') {
+    ab.innerHTML = `<button class="btn btn-outline" onclick="closeSession()">Mark Resolved ✓</button>`;
+  }
+
+  // Score
+  document.getElementById('side-score').textContent = s.normalized_score;
+  setTimeout(() => {
+    document.getElementById('side-bar').style.width = s.normalized_score + '%';
+  }, 300);
+
+  // Partial info
+  const pi = s.partial_info || {};
+  document.getElementById('pi-year').textContent  = pi.year  || '—';
+  document.getElementById('pi-dept').textContent  = pi.dept  || '—';
+  document.getElementById('pi-block').textContent = pi.block || '—';
+
+  // Meta
+  document.getElementById('meta-id').textContent      = '#' + s._id.slice(-6).toUpperCase();
+  document.getElementById('meta-date').textContent     = new Date(s.createdAt).toLocaleString();
+  document.getElementById('meta-claimed').textContent  = s.claimed_by?.username || 'Unclaimed';
+
+  // Answers
+  const al = document.getElementById('answers-list');
+  al.innerHTML = (s.answers || []).map((a, i) => {
+    const v = a.answer_value;
+    const cls = v <= 2 ? 's-low' : v <= 4 ? 's-moderate' : 's-high';
+    const q = QUESTIONS[i] || {};
+    return `
+      <div class="ans-row">
+        <div class="ans-score ${cls}">${v}</div>
+        <div>
+          <div class="a-cat">${q.cat || ''}</div>
+          <div class="a-q">${a.question_text}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // Messages
+  renderMessages(s.messages || []);
+
+  // Show composer if claimed
+  if (s.status === 'in_progress') {
+    document.getElementById('msg-composer').style.display = 'block';
+  }
+}
+
+function renderMessages(msgs) {
+  const list = document.getElementById('msg-list');
+  if (!msgs.length) {
+    list.innerHTML = '<p style="font-size:0.85rem;color:var(--muted);text-align:center;padding:12px 0">No messages yet.</p>';
+    return;
+  }
+  list.innerHTML = msgs.map(m => `
+    <div class="msg-bubble ${m.type}">
+      <div class="mb-type">${m.type === 'followup' ? '❓ Follow-up Question' : '💡 Advice'}</div>
+      <div class="mb-content">${m.content}</div>
+      ${m.reply ? `<div class="mb-reply">Student replied: "${m.reply}"</div>` : ''}
+    </div>
+  `).join('');
+  list.scrollTop = list.scrollHeight;
+}
+
+async function claim() {
+  const btn = document.querySelector('#action-btns .btn');
+  btn.disabled = true; btn.textContent = 'Claiming…';
+  const data = await mcClaimSession(sessionId);
+  if (data.error) { showToast('⚠️ ' + data.error); btn.disabled = false; btn.textContent = 'Claim Session'; return; }
+  showToast('✅ Session claimed!');
+  setTimeout(load, 800);
+}
+
+async function sendMsg() {
+  const type    = document.getElementById('msg-type').value;
+  const content = document.getElementById('msg-content').value.trim();
+  if (!content) { showToast('Please write a message first.'); return; }
+
+  const btn = document.querySelector('#msg-composer .btn');
+  btn.disabled = true; btn.textContent = 'Sending…';
+
+  const data = await mcSendMessage(sessionId, type, content);
+  if (data.error) { showToast('⚠️ ' + data.error); btn.disabled = false; btn.textContent = 'Send'; return; }
+
+  document.getElementById('msg-content').value = '';
+  showToast('✅ Message sent.');
+  btn.disabled = false; btn.textContent = 'Send';
+  setTimeout(load, 600);
+}
+
+async function closeSession() {
+  if (!confirm('Mark this session as resolved?')) return;
+  const data = await mcCloseSession(sessionId);
+  if (data.error) { showToast('⚠️ ' + data.error); return; }
+  showToast('✅ Session closed.');
+  setTimeout(load, 800);
+}
+
+function showError() {
+  document.getElementById('loading-state').style.display = 'none';
+  document.getElementById('error-state').style.display   = 'block';
+}
+
+// Inline status chip styles
+const st = document.createElement('style');
+st.textContent = `.status-chip{display:inline-block}.s-open{background:#DBEAFE;color:#1E40AF}.s-in_progress{background:var(--risk-mod-bg);color:var(--risk-mod)}.s-closed{background:var(--risk-low-bg);color:var(--risk-low)}`;
+document.head.appendChild(st);
+
+load();
+</script>
+</body>
+</html>

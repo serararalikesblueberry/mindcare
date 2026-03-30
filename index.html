@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MindCare — Student Wellbeing Platform</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  body { overflow-x: hidden; }
+
+  /* ── Hero ── */
+  .hero {
+    min-height: calc(100vh - 65px);
+    display: flex;
+    align-items: center;
+    padding: 60px 24px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 70% 60% at 80% 40%, rgba(244,169,138,0.18) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 50% at 10% 80%, rgba(107,143,113,0.12) 0%, transparent 55%);
+    pointer-events: none;
+  }
+
+  .hero-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 60px;
+    align-items: center;
+    width: 100%;
+  }
+
+  .hero-text { animation: fadeUp 0.6s ease both; }
+
+  .hero-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--peach-soft);
+    color: var(--terracotta);
+    padding: 6px 16px;
+    border-radius: 999px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    margin-bottom: 24px;
+  }
+
+  .hero h1 {
+    font-size: clamp(2.6rem, 5vw, 3.8rem);
+    margin-bottom: 20px;
+    color: var(--warm-brown);
+  }
+
+  .hero h1 em {
+    font-style: italic;
+    color: var(--terracotta);
+  }
+
+  .hero p {
+    font-size: 1.05rem;
+    margin-bottom: 36px;
+    max-width: 440px;
+    line-height: 1.75;
+  }
+
+  .hero-actions { display: flex; gap: 14px; flex-wrap: wrap; }
+
+  /* ── Floating visual ── */
+  .hero-visual {
+    animation: fadeUp 0.6s 0.15s ease both;
+    display: flex;
+    justify-content: center;
+  }
+
+  .hero-card-stack {
+    position: relative;
+    width: 340px;
+    height: 420px;
+  }
+
+  .hc {
+    position: absolute;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 24px;
+    box-shadow: var(--shadow-lg);
+  }
+
+  .hc-main {
+    width: 300px;
+    top: 40px;
+    left: 20px;
+    z-index: 2;
+  }
+
+  .hc-back {
+    width: 280px;
+    top: 20px;
+    left: 40px;
+    background: var(--cream-dark);
+    z-index: 1;
+    box-shadow: none;
+  }
+
+  .hc-top {
+    width: 220px;
+    top: 0;
+    left: 60px;
+    background: var(--peach-soft);
+    z-index: 0;
+    box-shadow: none;
+    border-color: transparent;
+  }
+
+  .hc .hc-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+
+  .hc .hc-title {
+    font-family: 'Fraunces', serif;
+    font-size: 1rem;
+    margin-bottom: 16px;
+  }
+
+  .hc .scale-row {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 16px;
+  }
+
+  .hc .pip {
+    flex: 1;
+    height: 36px;
+    border-radius: 8px;
+    background: var(--cream-dark);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--muted);
+    border: 1.5px solid var(--border);
+  }
+
+  .hc .pip.active {
+    background: var(--warm-brown);
+    color: var(--cream);
+    border-color: var(--warm-brown);
+  }
+
+  .hc-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--risk-low-bg);
+    color: var(--risk-low);
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 700;
+  }
+
+  /* ── Features ── */
+  .features {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 80px 24px;
+  }
+
+  .features-header {
+    text-align: center;
+    margin-bottom: 56px;
+    animation: fadeUp 0.5s ease both;
+  }
+
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+  }
+
+  .feat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 32px 28px;
+    animation: fadeUp 0.5s ease both;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+
+  .feat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+  }
+
+  .feat-card:nth-child(2) { animation-delay: 0.08s; }
+  .feat-card:nth-child(3) { animation-delay: 0.16s; }
+
+  .feat-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    margin-bottom: 18px;
+  }
+  .fi-peach { background: var(--peach-soft); }
+  .fi-sage  { background: var(--sage-light); }
+  .fi-warm  { background: var(--cream-dark); }
+
+  .feat-card h3 { margin-bottom: 8px; font-size: 1.1rem; }
+
+  @media (max-width: 768px) {
+    .hero-inner { grid-template-columns: 1fr; gap: 40px; }
+    .hero-visual { display: none; }
+    .features-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div id="toast"></div>
+
+<nav class="topbar">
+  <div class="logo">🌿 MindCare</div>
+  <nav>
+    <a href="login.html" class="btn btn-outline" style="padding:9px 20px; font-size:0.88rem;">Sign In</a>
+    <a href="login.html#register" class="btn btn-peach" style="padding:9px 20px; font-size:0.88rem;">Get Started</a>
+  </nav>
+</nav>
+
+<!-- ── Hero ──────────────────────────────────────────────────────────── -->
+<section class="hero">
+  <div class="hero-inner">
+    <div class="hero-text">
+      <div class="hero-eyebrow">🔒 Anonymous & Confidential</div>
+      <h1>Your wellbeing<br>matters, <em>always.</em></h1>
+      <p>MindCare is a safe, anonymous space for students to check in on their mental health — and for counsellors to offer support with full privacy.</p>
+      <div class="hero-actions">
+        <a href="login.html#register" class="btn btn-primary btn-lg">I'm a Student →</a>
+        <a href="login.html" class="btn btn-outline btn-lg">Counsellor Login</a>
+      </div>
+    </div>
+
+    <div class="hero-visual">
+      <div class="hero-card-stack">
+        <div class="hc hc-top"></div>
+        <div class="hc hc-back"></div>
+        <div class="hc hc-main">
+          <div class="hc-label">Today's Check-in · Q8 of 16</div>
+          <div class="hc-title">Do you feel mentally exhausted after studying?</div>
+          <div class="scale-row">
+            <div class="pip">1</div>
+            <div class="pip">2</div>
+            <div class="pip">3</div>
+            <div class="pip active">4</div>
+            <div class="pip">5</div>
+            <div class="pip">6</div>
+          </div>
+          <div class="hc-badge">🟢 Doing well today</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Features ──────────────────────────────────────────────────────── -->
+<section class="features">
+  <div class="features-header">
+    <h2>Built around trust</h2>
+    <p style="max-width:480px; margin:12px auto 0;">Everything is designed so students feel safe, and counsellors can actually help.</p>
+  </div>
+
+  <div class="features-grid">
+    <div class="feat-card">
+      <div class="feat-icon fi-peach">🔒</div>
+      <h3>Truly anonymous</h3>
+      <p>Students log in with just a display name. No email, no ID. You control what — if anything — you share.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon fi-sage">📊</div>
+      <h3>Smart risk scoring</h3>
+      <p>16 weighted questions map your responses to low, moderate, or high risk — so support is proportionate.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon fi-warm">🤝</div>
+      <h3>Consent-first contact</h3>
+      <p>High-risk students choose whether and how much to reveal before a counsellor ever reaches out.</p>
+    </div>
+  </div>
+</section>
+
+</body>
+</html>
