@@ -3,7 +3,14 @@
 // Add <script src="api.js"></script> to every HTML page
 // ═══════════════════════════════════════════════════════
 
-const BASE_URL = 'http://localhost:5000'; // 🔁 Change to your Railway URL when deployed
+const BASE_URL = 'https://mindcare-production-3b8f.up.railway.app';
+```
+
+Click **Commit changes** → **Commit directly to main**.
+
+Then test it's working by visiting this URL in your browser:
+```
+//https://mindcare-production-3b8f.up.railway.app/health//const BASE_URL = 'http://localhost:5000'; // 🔁 Change to your Railway URL when deployed
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
